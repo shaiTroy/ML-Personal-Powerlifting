@@ -4,47 +4,32 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
 
-def Iso(arr):
-    arr = np.array(arr)
+def Iso(Inputs, Outputs):
+    arr = np.array(Outputs)
 
-    Input = np.delete(arr, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], axis=1)
-    Input = StandardScaler().fit_transform(Input) 
-
-    model = IsolationForest(n_estimators=200, max_samples=256, random_state=42)
-    model.fit(Input)
-
-    scores = model.decision_function(Input)
-
-    outliers = np.sum(scores < 0)  # Count outliers
-    total_points = len(scores)  # Total number of samples
-
-    outlier_percentage = ((total_points - outliers) / total_points) * 100
-    print(f"Outlier Percentage: {outlier_percentage:.2f}%, number of remaining points: {total_points - outliers}")
+    Squat = np.delete(arr, [1, 2], axis=1)
+    Bench = np.delete(arr, [0, 2], axis=1)
+    Deadlift = np.delete(arr, [0, 1], axis=1)
+    Squat = StandardScaler().fit_transform(Squat) 
+    Bench = StandardScaler().fit_transform(Bench) 
+    Deadlift = StandardScaler().fit_transform(Deadlift) 
     
-    mask = scores >= 0  
+    for lift in [Squat, Bench, Deadlift]:
 
-    filtered_arr = arr[mask]
-    
-    input = np.array((filtered_arr[:, :-1]))
-    out = np.array(filtered_arr[:, -1])
-    
-    '''
-    plt.figure(figsize=(8, 6))
-    plt.scatter(arr[:, 3], Input[:, 0], c=scores, cmap='coolwarm', s=100)
-    plt.xlabel("Init Total")
-    plt.ylabel("Change in Total (Standardized)")
-    plt.title('Anomaly Scores for Outlier Detection')
-    plt.show()
-    '''
-    '''
-    valid_indices = scores >= 0
-    valid_values = Input[valid_indices]
+        model = IsolationForest(n_estimators=200, max_samples=256, random_state=42)
+        model.fit(lift)
+        scores = model.decision_function(lift)
+        
+        #appendthe scores to the inputs
+        Inputs = np.array(Inputs)
+        Inputs = np.append(Inputs, scores.reshape(-1, 1), axis=1)
+        outliers = np.sum(scores < 0)  # Count outliers
+        total_points = len(scores)
+        outlier_percentage = ((total_points - outliers) / total_points) * 100
+        lift_name = "Squat" if np.array_equal(lift, Squat) else "Bench" if np.array_equal(lift, Bench) else "Deadlift"
+        print(f"Outlier Percentage of {lift_name}: {outlier_percentage:.2f}%")
+        
+    Outputs = np.array(Outputs)
+        
+    return Inputs, Outputs
 
-    if len(valid_values) > 0:
-        max_value = np.max(valid_values)
-        min_value = np.min(valid_values)
-        print(f"Greatest number in Input with score >= 0: {max_value:.2f}")
-        print(f"Smallest number in Input with score >= 0: {min_value:.2f}")
-    '''
-    
-    return input, out

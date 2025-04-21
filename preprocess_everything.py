@@ -3,9 +3,11 @@ from datetime import datetime
 import numpy as np
 import sys
 from IsoForest import Iso
+import os
+os.system('clear')  
 
 def importData():
-    with open('openipf-2025-03-15-e5a42b06.csv', mode='r') as file:
+    with open('openipf-2025-04-12-49fad7a9.csv', mode='r') as file:
         reader = csv.reader(file)
         data = []
         for row in reader:
@@ -13,7 +15,7 @@ def importData():
             if row[2] != 'SBD' or row[3] != 'Raw' or row[7] == 'Special Olympics' or row[30] == '': continue
             if row[7] == 'Juniors': row[7] = 'Junior'
             if row[7] == 'Sub-Juniors': row[7] = 'Sub-Junior'
-            for i in [0, 1, 8, 25, 36, 4, 5, 6, 10, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 24, 30]:
+            for i in [0, 1, 8, 36, 4, 5, 6, 14, 19, 24, 30]:
                     currentRow.append(row[i])
             data.append(currentRow)
         return data
@@ -21,74 +23,21 @@ def importData():
     # [0] = Name
     # [1] = Sex
     # [2] = BodyWeight
-    # [3] = Total
-    # [4] = Date
-    # [5] = Age
-    # [6] = AgeClass
-    # [7] = BirthYear
-    # [8] = Squat1
-    # [9] = Squat2
-    # [10] = Squat3
-    # [11] = Best Squat
-    # [12] = Bench1
-    # [13] = Bench2
-    # [14] = Bench3
-    # [15] = Best Bench
-    # [16] = Deadlift1
-    # [17] = Deadlift2
-    # [18] = Deadlift3
-    # [19] = Best Deadlift
-    # [20] = GL
+    # [3] = Date
+    # [4] = Age
+    # [5] = AgeClass
+    # [6] = BirthYear
+    # [7] = Best Squat
+    # [8] = Best Bench
+    # [9] = Best Deadlift
+    # [10] = GL
     
 def sortData(data):
-    # Sort by date at index 4
-    data.sort(key=lambda x: datetime.strptime(x[4], '%Y-%m-%d'))
+    # Sort by date at index 3
+    data.sort(key=lambda x: datetime.strptime(x[3], '%Y-%m-%d'))
     # Sort by first and last name at index 0
     data.sort(key=lambda x: (x[0].split()[0], x[0].split()[1]) if len(x[0].split()) > 1 else (x[0].split()[0], ''))
     return data
-
-def exportData(data, name):
-    # This function is not used anymore, keeping it to show past use
-    with open(name, mode='w') as file:
-        file.write(f"Name, Sex, Weight, Total, Date\n")
-        for row in data:
-            for i in range(5):
-                file.write(row[i])
-                if i < 4: file.write(', ')
-            file.write('\n')
-            
-def filterNamesWithAtLeastTwoOccurrences(data):
-    '''
-    This function has become useless after implementation of updateDates.
-    It was used to filter out lifters with only one competition, but updateDates is used to ensure lifters dont have two competitions on the same day.
-    If a lifter has two competitions on the same day, we want to remove duplicates. If a lifter only has one competition,
-    the algo will reckognize that the next lifter has the first lifting date to 0 aswell.
-    Therefore, this function is not needed, but is kept for understanding why RNNs wont work.
-    '''
-    name_count = {}
-    
-    for row in data:
-        name = row[0]
-        if name in name_count:
-            name_count[name] += 1
-        else:
-            name_count[name] = 1
-
-    
-    # for finding the number of lifters with atleast x competitions
-    # used to understand why a RNN isnt a good choice for this data
-    '''
-    values = list(name_count.values())
-    bins = range(min(values), max(values) + 2)
-    holder = 0
-    for i in range(len(bins) - 1, 0, -1):
-        holder += len([name for name in name_count if name_count[name] == bins[i]])
-        print(f"Found {holder} lifters with atleast {bins[i]} competitions.")
-    '''
-
-    filtered_data = [row for row in data if name_count[row[0]] >= 2]
-    print(f"Filtered out {len(data) - len(filtered_data)} entries, {len(filtered_data)} entries remaining.")
-    return filtered_data
 
 def updateDates(filtered):
     first_occurrence_date = None
@@ -96,7 +45,7 @@ def updateDates(filtered):
 
     for entry in filtered:
         name = entry[0]
-        date_str = entry[4]
+        date_str = entry[3]
 
         try:
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
@@ -107,18 +56,18 @@ def updateDates(filtered):
         if name != current_name:
             current_name = name
             first_occurrence_date = date_obj
-            entry[4] = 0
+            entry[3] = 0
         else:
             days_difference = (date_obj - first_occurrence_date).days
-            entry[4] = days_difference
+            entry[3] = days_difference
     i = 0
     n = len(filtered)
     while i < len(filtered)-1:
-        if filtered[i][4] == filtered[i+1][4]:
+        if filtered[i][3] == filtered[i+1][3]:
             filtered.pop(i)
         else:
             i += 1 
-    if filtered[-1][4] == 0:
+    if filtered[-1][3] == 0:
         filtered.pop(-1)
     print(f"Filtered out {n - len(filtered)} entries with the same lifter and date, {len(filtered)} entries remaining.")
     
@@ -129,87 +78,75 @@ def updateDates(filtered):
     n = len(filtered)
     while i < len(filtered)-1:
         try:
-            filtered[i][5] = float(filtered[i][5])
+            filtered[i][4] = float(filtered[i][4])
         except:
             try: 
-                filtered[i][5] = float(filtered[i][6][:2])
+                filtered[i][4] = float(filtered[i][5][:2])
             except:
                 try:
-                    filtered[i][5] = float(filtered[i][7][:2])
+                    filtered[i][4] = float(filtered[i][6][:2])
                 except:
                     filtered.pop(i)
                     continue
-        for j in range(8, 21):
-            try:
-                filtered[i][j] = float(filtered[i][j])
-            except:
-                filtered.pop(i)
-                i -= 1
-                break
-            if filtered[i][j] == 0:
-                print(f"Found 0 attempt in {filtered[i]}")
-                filtered.pop(i)
-                i -= 1
-                break
-
+        try:
+            filtered[i][7] = float(filtered[i][7])
+            filtered[i][8] = float(filtered[i][8])
+            filtered[i][9] = float(filtered[i][9])
+        except:
+            filtered.pop(i)
+            continue
         i += 1
     print(f"Filtered out {n - len(filtered)} entries with no age or incorrect attempts, {len(filtered)} entries remaining.")
     
     return filtered
 
 def transform_and_save_arrays(filtered):
-    comps = []
     cur_name = None
     holder = []
 
-
+    Inputs = []
+    Outputs = []
+    
     for row in filtered:
         if cur_name != row[0]:
             cur_name = row[0]
-            holder = [1, row[1], float(row[2]), float(row[3]), float(row[4]), row[5], float(row[8]), float(row[9]), float(row[10]), float(row[11]), float(row[12]), float(row[13]), float(row[14]), float(row[15]), float(row[16]), float(row[17]), float(row[18]), float(row[19]), row[20]]
+            holder = [row[1], float(row[2]), float(row[3]), float(row[4]), float(row[7]), float(row[8]), float(row[9]), float(row[10])]
+           #holder = [gender, init bw,      date,               age,            squat,      bench,          deadlift,           GL     ]
         else:
-            if holder[1] == 'M':
-                holder[1] = 1
+            if holder[0] == 'M':
+                holder[0] = 1
             else:
-                holder[1] = 0
-            holder[4] = row[4] - holder[4]
-            holder.append(float(row[2])-holder[2])
-            holder.append(float(row[3])-holder[3])
-            comps.append(holder)
-            holder = [1, row[1], float(row[2]), float(row[3]), float(row[4]), row[5], float(row[8]), float(row[9]), float(row[10]), float(row[11]), float(row[12]), float(row[13]), float(row[14]), float(row[15]), float(row[16]), float(row[17]), float(row[18]), float(row[19]), row[20]]
+                holder[0] = 0
+            holder[2] = row[3] - holder[2]
+            holder.append(float(row[2])-holder[1]) #add change in bw
+            Inputs.append(holder) #add all inputs to array
+            Outputs.append([float(row[7])-holder[4], float(row[8])-holder[5], float(row[9])-holder[6]])# add change in each total to output
+            holder = [row[1], float(row[2]), float(row[3]), float(row[4]), float(row[7]), float(row[8]), float(row[9]), float(row[10])]
     
-    print(f"Number of entries: {len(comps)}")
+    print(f"Number of entries: {len(Inputs)}")
 
     #Send to unsupervised algo to learn injured vs healthy
-    Inputs, Outputs = Iso(comps)
+    Inputs, Outputs= Iso(Inputs, Outputs)
     
     #Array looks as following:
     
     #Inputs
-    #[0] = 1 (bias)
-    #[1] = Sex (0 for F, 1 for M)
-    #[2] = Init Weight
-    #[3] = Init Total
-    #[4] = Days between competitions
-    #[5] = Age
-    #[6] = Squat1
-    #[7] = Squat2
-    #[8] = Squat3
-    #[9] = Best Squat
-    #[10] = Bench1
-    #[11] = Bench2
-    #[12] = Bench3
-    #[13] = Best Bench
-    #[14] = Deadlift1
-    #[15] = Deadlift2
-    #[16] = Deadlift3
-    #[17] = Best Deadlift
-    #[18] = GL
-    #[19] = Change Weight
+    #[0] = Sex (0 for F, 1 for M)
+    #[1] = Init Weight
+    #[2] = Days between competitions
+    #[3] = Age
+    #[4] = Best Squat
+    #[5] = Best Bench
+    #[6] = Best Deadlift
+    #[7] = GL
+    #[8] = Change Weight
+    #[9] = Isolation score
 
     
     #Outputs
-    #[0] = Change Total
+    #[0] = Change Squat
+    #[1] = Change Bench
+    #[2] = Change Deadlift
     
     
     #for i in range (10):
