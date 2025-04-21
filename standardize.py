@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 class Standard:
     def __init__(self, Input_Train, Inputs_Test, Inputs_Validation=None):
