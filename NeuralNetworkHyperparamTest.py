@@ -6,13 +6,10 @@ import optuna
 from torch.utils.data import DataLoader, TensorDataset
 import os
 from tqdm import tqdm
-import torch.nn.functional as F
 
 os.system('clear')
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
-
 
 Inputs_Train = np.load('Inputs_Train.npy').astype(float)
 Outputs_Train = np.load('Outputs_Train.npy').astype(float)
@@ -94,14 +91,7 @@ study = optuna.load_study(
 
 def custom_mae(y_pred, y_true):
     abs_error = (y_pred - y_true).abs()  
-    
     column_mae = abs_error.mean(dim=0)
-    #for i, mae in enumerate(column_mae):
-    #    print(f"MAE for column {i}: {mae.item()}")
-    
-    #first_row_mae = abs_error[0].mean()  
-    #print(f"MAE for the first row: {first_row_mae.item()}")
-
     return column_mae.sum()   
 
 
