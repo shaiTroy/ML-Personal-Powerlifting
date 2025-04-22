@@ -6,6 +6,8 @@ from sklearn.preprocessing import StandardScaler
 
 def Iso(Inputs, Outputs):
     arr = np.array(Outputs)
+    Inputs = np.array(Inputs)
+    Outputs = np.array(Outputs)
 
     Squat = np.delete(arr, [1, 2], axis=1)
     Bench = np.delete(arr, [0, 2], axis=1)
@@ -14,22 +16,23 @@ def Iso(Inputs, Outputs):
     Bench = StandardScaler().fit_transform(Bench) 
     Deadlift = StandardScaler().fit_transform(Deadlift) 
     
-    for lift in [Squat, Bench, Deadlift]:
+    scores_list = []
 
+    for lift, lift_name in zip([Squat, Bench, Deadlift], ['Squat', 'Bench', 'Deadlift']):
         model = IsolationForest(n_estimators=200, max_samples=256, random_state=42)
         model.fit(lift)
         scores = model.decision_function(lift)
-        
-        #appendthe scores to the inputs
-        Inputs = np.array(Inputs)
-        Inputs = np.append(Inputs, scores.reshape(-1, 1), axis=1)
-        outliers = np.sum(scores < 0)  # Count outliers
+        scores_list.append(scores)
+        outliers = np.sum(scores < 0)
         total_points = len(scores)
         outlier_percentage = ((total_points - outliers) / total_points) * 100
-        lift_name = "Squat" if np.array_equal(lift, Squat) else "Bench" if np.array_equal(lift, Bench) else "Deadlift"
         print(f"Outlier Percentage of {lift_name}: {outlier_percentage:.2f}%")
-        
-    Outputs = np.array(Outputs)
-        
+
+    scores_all = np.vstack(scores_list).T  
+    valid_mask = np.all(scores_all >= 0, axis=1)
+
+    Inputs = Inputs[valid_mask]
+    Outputs = Outputs[valid_mask]
+    
     return Inputs, Outputs
 

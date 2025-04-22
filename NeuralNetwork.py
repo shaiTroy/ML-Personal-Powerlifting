@@ -6,16 +6,17 @@ import optuna
 from torch.utils.data import DataLoader, TensorDataset
 import os
 from tqdm import tqdm
+import torch.nn.functional as F
+
 os.system('clear')
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
-Inputs_Train = np.load('Inputs_Train.npy').astype(float)[:, 1:]
+Inputs_Train = np.load('Inputs_Train.npy').astype(float)
 Outputs_Train = np.load('Outputs_Train.npy').astype(float)
-Inputs_Test = np.load('Inputs_Test.npy').astype(float)[:, 1:]
+Inputs_Test = np.load('Inputs_Test.npy').astype(float)
 Outputs_Test = np.load('Outputs_Test.npy').astype(float)
 
 val_split = int(len(Inputs_Train) * 0.8)
@@ -79,22 +80,35 @@ sampler = optuna.samplers.TPESampler(n_startup_trials=20)  # You can increase th
 study = optuna.create_study(
     direction="minimize",
     storage=storage_path,
-    study_name="nn1_study",
+    study_name="NN_test_study",
     sampler=sampler,
     load_if_exists=True
 )
 
 '''
 study = optuna.load_study(
-    study_name="nn6_study",
+    study_name="NN_test_study",
     storage=storage_path,
 )
 '''
 
+def custom_mae(y_pred, y_true):
+    abs_error = (y_pred - y_true).abs()  
+    
+    column_mae = abs_error.mean(dim=0)
+    #for i, mae in enumerate(column_mae):
+    #    print(f"MAE for column {i}: {mae.item()}")
+    
+    #first_row_mae = abs_error[0].mean()  
+    #print(f"MAE for the first row: {first_row_mae.item()}")
+
+    return column_mae.sum()   
+
+
 def custom_loss(y_true1, y_pred1, y_true2, y_pred2):
-    mse1 = mean_absolute_error(y_true1, y_pred1)
-    mse2 = mean_absolute_error(y_true2, y_pred2)
-    return (mse1 + (np.square(5 * (mse1 - mse2))/5))
+    mae1 = custom_mae(y_pred1, y_true1)
+    mae2 = custom_mae(y_pred2, y_true2)
+    return mae1 + (5 * (mae1 - mae2).pow(2)) / 5
     #This function is required for proper regularization
 
 def objective(trial):
@@ -123,11 +137,13 @@ def objective(trial):
     ).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=alpha)
-    criterion = torch.nn.L1Loss()
+    criterion = custom_mae
 
     # Early stopping parameters
     best_loss = float('inf')
     counter = 0
+    best_model_state = None
+    best_epoch = -1
     
     train_dataset = TensorDataset(Inputs_Train, Outputs_Train)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -143,29 +159,36 @@ def objective(trial):
         for xb, yb in tqdm(train_loader, desc=f"Epoch {epoch+1}", leave=False):
             xb, yb = xb.to(device), yb.to(device)
             
-            
-            
             optimizer.zero_grad()
             outputs = model(xb)
             loss = criterion(outputs, yb)
             loss.backward()
             optimizer.step()
-            running_loss += loss.item()
+            running_loss += loss.item() * xb.size(0)
 
         if running_loss < best_loss:
             best_loss = running_loss
+            best_model_state = model.state_dict()
+            best_epoch = epoch + 1  # Store 1-based epoch index
             counter = 0
         else:
             counter += 1
             if counter >= patience:
                 print(f"Early stopping at epoch {epoch+1}")
                 break
+        
+        if epoch % 10 == 0:
+            print(f"Epoch {epoch+1}/{150}, Loss: {(running_loss / len(train_loader.dataset)):.4f}")
+    
+    if best_model_state is not None:
+        model.load_state_dict(best_model_state)
+        print(f"Model reverted to best epoch: {best_epoch} (loss: {best_loss:.4f})")
 
     # Validation after training ends
     model.eval()
     y_pred1 = model(Inputs_Val_1.to(device))
     y_pred2 = model(Inputs_Val_2.to(device))
-    final_loss = custom_loss(Outputs_Val_1.cpu().detach().numpy(), y_pred1.cpu().detach().numpy(), Outputs_Val_2.cpu().detach().numpy(), y_pred2.cpu().detach().numpy())
+    final_loss = custom_loss(Outputs_Val_1, y_pred1, Outputs_Val_2, y_pred2)
     
 
     return final_loss

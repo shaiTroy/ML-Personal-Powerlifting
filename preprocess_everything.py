@@ -128,6 +128,11 @@ def transform_and_save_arrays(filtered):
     #Send to unsupervised algo to learn injured vs healthy
     Inputs, Outputs= Iso(Inputs, Outputs)
     
+    print(f"Number of entries after outlier removal: {len(Inputs)}")
+    '''
+    for i in range(10):
+        print(f"Input: {Inputs[i]}, Output: {Outputs[i]}")
+    '''
     #Array looks as following:
     
     #Inputs
@@ -140,7 +145,6 @@ def transform_and_save_arrays(filtered):
     #[6] = Best Deadlift
     #[7] = GL
     #[8] = Change Weight
-    #[9] = Isolation score
 
     
     #Outputs
