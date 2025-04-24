@@ -20,3 +20,6 @@ class Standard:
     def normalize(self, Inputs_Train, Inputs_Test):
         self.Inputs_Train = (Inputs_Train - self.mean) / self.std
         self.Inputs_Test = (Inputs_Test - self.mean) / self.std 
+        
+    def standardize(self, x):
+        return (x - self.mean.squeeze()) / self.std.squeeze()
