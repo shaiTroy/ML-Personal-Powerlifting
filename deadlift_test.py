@@ -9,9 +9,9 @@ os.system('clear')
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 Inputs_Train = np.load('X_train.npy').astype(float)
-Outputs_Train = np.load('bench_train.npy').astype(float)
+Outputs_Train = np.load('deadlift_train.npy').astype(float)
 Inputs_Test = np.load('X_test.npy').astype(float)
-Outputs_Test = np.load('bench_test.npy').astype(float)
+Outputs_Test = np.load('deadlift_test.npy').astype(float)
 
 Inputs_Train = torch.tensor(Inputs_Train, dtype=torch.float32)
 Outputs_Train = torch.tensor(Outputs_Train, dtype=torch.float32)
@@ -23,9 +23,9 @@ Inputs_Train = torch.tensor(standardized.Inputs_Train, dtype=torch.float32)
 Inputs_Test = standardized.Inputs_Test.clone().detach().to(torch.float32)
 
 Inputs_Train = Inputs_Train.to(device)
-Outputs_Train = Outputs_Train.to(device)
+Outputs_Train = Outputs_Train.to(device).unsqueeze(1)
 Inputs_Test = Inputs_Test.to(device)
-Outputs_Test = Outputs_Test.to(device)
+Outputs_Test = Outputs_Test.to(device).unsqueeze(1)
 
 class MLP(torch.nn.Module):
     def __init__(self, input_dim, layers, activation, use_batchnorm=False, dropout=0.0):
@@ -54,13 +54,13 @@ class MLP(torch.nn.Module):
 
 model = MLP(
         input_dim=Inputs_Train.shape[1],
-        layers=[160, 32],
+        layers=[32, 32],
         activation="relu",
-        use_batchnorm=False,  
+        use_batchnorm=True,  
         dropout=0.11635918108480109              
     ).to(device)
 
-model.load_state_dict(torch.load("bench_model.pth", weights_only=True))
+model.load_state_dict(torch.load("deadlift_model.pth", weights_only=True))
 model.eval()
 
 n = 0
@@ -92,7 +92,7 @@ print("Bin edges:")
 print(bins)
 
 # Create a new dataset comprised of outputs between -5 and 20
-mask = (outputs.cpu().detach().numpy().flatten() >= -100) & (outputs.cpu().detach().numpy().flatten() <= 100)
+mask = (outputs.cpu().detach().numpy().flatten() >= 0) & (outputs.cpu().detach().numpy().flatten() <= 10)
 print(f"Mask shape: {mask.shape}, Mask values: {np.unique(mask)}")
 filtered_outputs = outputs[mask]
 filtered_outputs = filtered_outputs.cpu().detach().numpy()
@@ -110,9 +110,9 @@ filtered_outputs = torch.tensor(filtered_outputs, dtype=torch.float32).to(device
 # Pass the filtered inputs through the model
 filtered_outputs_pred = model(filtered_inputs)
 
-print(f"Filtered Outputs: {filtered_outputs}")
-print(f"Filtered Outputs Predicted: {filtered_outputs_pred}")
-print(f"Model Predictions: {filtered_outputs_pred.cpu().detach().numpy()}")
+print(f"Filtered Outputs: {filtered_outputs.shape}")
+print(f"Filtered Outputs Predicted: {filtered_outputs_pred.shape}")
+print(f"Model Predictions: {filtered_outputs_pred.cpu().detach().numpy().shape}")
 
 # Print the mse
 mse = torch.nn.MSELoss()
@@ -136,8 +136,8 @@ pred1 = model(torch.tensor(standardized_comp1, dtype=torch.float32).unsqueeze(0)
 pred2 = model(torch.tensor(standardized_comp2, dtype=torch.float32).unsqueeze(0).to(device))
 pred3 = model(torch.tensor(standardized_comp3, dtype=torch.float32).unsqueeze(0).to(device))
 
-print(f"Pred1: {pred1.item():.4f}, actual: 7.5")
-print(f"Pred2: {pred2.item():.4f}, actual: 2.5")
+print(f"Pred1: {pred1.item():.4f}, actual: -12.5")
+print(f"Pred2: {pred2.item():.4f}, actual: 22.5")
 print(f"Pred3: {pred3.item():.4f}, actual: Not Happened")
 
 

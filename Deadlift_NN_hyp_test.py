@@ -176,7 +176,7 @@ def objective(trial):
 
     return final_loss
 
-study.optimize(objective, n_trials=250)
+study.optimize(objective, n_trials=0)
 
 valid_trials = [t for t in study.trials if t.value is not None]
 
