@@ -23,9 +23,9 @@ Inputs_Train = torch.tensor(standardized.Inputs_Train, dtype=torch.float32)
 Inputs_Test = standardized.Inputs_Test.clone().detach().to(torch.float32)
 
 Inputs_Train = Inputs_Train.to(device)
-Outputs_Train = Outputs_Train.to(device)
+Outputs_Train = Outputs_Train.to(device).unsqueeze(1)
 Inputs_Test = Inputs_Test.to(device)
-Outputs_Test = Outputs_Test.to(device)
+Outputs_Test = Outputs_Test.to(device).unsqueeze(1)
 
 class MLP(torch.nn.Module):
     def __init__(self, input_dim, layers, activation, use_batchnorm=False, dropout=0.0):
@@ -53,18 +53,30 @@ class MLP(torch.nn.Module):
         return self.model(x)
 
 model = MLP(
-        input_dim=Inputs_Train.shape[1],
-        layers=[160, 32],
-        activation="relu",
-        use_batchnorm=False,  
-        dropout=0.11635918108480109              
-    ).to(device)
+    input_dim=Inputs_Train.shape[1],
+    layers=[160, 128, 64, 32],
+    activation="relu",
+    use_batchnorm=True,  
+    dropout=0.1443027627357795              
+).to(device)
 
 model.load_state_dict(torch.load("bench_model.pth", weights_only=True))
 model.eval()
 
 n = 0
 outputs = model(Inputs_Test) 
+
+def accuracy(outputs, targets):
+    outputs = outputs.cpu().detach().numpy().flatten()
+    targets = targets.cpu().detach().numpy().flatten()
+    outputs = np.round(outputs)
+    targets = np.round(targets)
+    correct = np.sum(np.abs(outputs - targets) < 1.25)  # Check if within 2.5kg
+    print(f"Correct: {correct}, Total: {len(targets)}")
+    total = len(targets)
+    return correct / total
+
+print(f"Accuracy: {accuracy(outputs, Outputs_Test)*100:.2f}%")
 
 # Print the mse
 mse = torch.nn.MSELoss()

@@ -62,14 +62,14 @@ class MLP(torch.nn.Module):
 
 model = MLP(
         input_dim=Inputs_Train.shape[1],
-        layers=[160, 32],
+        layers=[160, 128, 64, 32],
         activation="relu",
-        use_batchnorm=False,  
-        dropout=0.11635918108480109              
+        use_batchnorm=True,  
+        dropout=0.1443027627357795              
     ).to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0003422243599208432, weight_decay=2.681934947945312e-06)
-criterion = torch.nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.009029856091491584, weight_decay=5.556511569052476e-06)
+criterion = torch.nn.HuberLoss()
 
 model_save_path = "bench_model.pth"
 if not os.path.exists(model_save_path):
@@ -79,7 +79,7 @@ if not os.path.exists(model_save_path):
     best_epoch = -1
 
     train_dataset = TensorDataset(Inputs_Train, Outputs_Train)
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
         
     for epoch in range(300):
 
@@ -102,7 +102,7 @@ if not os.path.exists(model_save_path):
             counter = 0
         else:
             counter += 1
-            if counter >= 9:
+            if counter >= 5:
                 print(f"Early stopping at epoch {epoch+1}")
                 break
             
@@ -124,7 +124,7 @@ y_pred1 = model(Inputs_Test.to(device))
 
 mse = criterion(y_pred1, Outputs_Test.to(device))
 
-print(f"MSE for Bench: {mse:.4f}")
+print(f"Huber loss for Bench: {mse:.4f}")
 
 mae_loss = torch.nn.L1Loss()
 mae = mae_loss(y_pred1, Outputs_Test.to(device))

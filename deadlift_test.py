@@ -91,6 +91,13 @@ print(hist)
 print("Bin edges:") 
 print(bins)
 
+bins = np.arange(-15, 40, 5)
+hist, _ = np.histogram(Outputs_Train.cpu().detach().numpy(), bins=bins)
+print("Histogram of training outputs:")
+print(hist)
+print("Bin edges:") 
+print(bins)
+
 # Create a new dataset comprised of outputs between -5 and 20
 mask = (outputs.cpu().detach().numpy().flatten() >= 0) & (outputs.cpu().detach().numpy().flatten() <= 10)
 print(f"Mask shape: {mask.shape}, Mask values: {np.unique(mask)}")
@@ -102,6 +109,7 @@ filtered_outputs = filtered_outputs.flatten()
 filtered_inputs = Inputs_Test[mask, :]  # Ensure mask is 1D
 print(f"Filtered inputs shape: {filtered_inputs.shape}")
 print(f"Filtered inputs values: {filtered_inputs}")
+
 
 filtered_inputs = filtered_inputs.cpu().detach().numpy()
 filtered_inputs = torch.tensor(filtered_inputs, dtype=torch.float32).to(device)

@@ -54,10 +54,10 @@ class MLP(torch.nn.Module):
 
 model = MLP(
         input_dim=Inputs_Train.shape[1],
-        layers=[160, 32],
+        layers=[480, 320, 192, 32],
         activation="relu",
         use_batchnorm=True,  
-        dropout=0.15119733872980617              
+        dropout=0.4687129863799556              
     ).to(device)
 
 model.load_state_dict(torch.load("squat_model.pth", weights_only=True))
@@ -65,6 +65,19 @@ model.eval()
 
 n = 0
 outputs = model(Inputs_Test) 
+
+def accuracy(outputs, targets):
+    outputs = outputs.cpu().detach().numpy().flatten()
+    targets = targets.cpu().detach().numpy().flatten()
+    outputs = np.round(outputs)
+    targets = np.round(targets)
+    correct = np.sum(np.abs(outputs - targets) < 1.25)  # Check if within 2.5kg
+    print(f"Correct: {correct}, Total: {len(targets)}")
+    total = len(targets)
+    return correct / total
+
+print(f"Accuracy: {accuracy(outputs, Outputs_Test)*100:.2f}%")
+
 #create bins between -15 and 35, in range of 5. count the number of entries in each bin
 bins = np.arange(-15, 40, 5)
 hist, _ = np.histogram(outputs.cpu().detach().numpy(), bins=bins)

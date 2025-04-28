@@ -2,7 +2,6 @@ import csv
 from datetime import datetime
 import numpy as np
 import sys
-from IsoForest import Iso
 from sklearn.model_selection import train_test_split
 import os
 
@@ -142,7 +141,7 @@ def transform_and_save_arrays(filtered):
     print(f"Number of entries: {len(comps)}")
 
     #Send to unsupervised algo to learn injured vs healthy
-    Inputs = Iso(comps)
+    Inputs = np.array(comps)
     
     #Array looks as following:
     
@@ -179,7 +178,6 @@ def transform_and_save_arrays(filtered):
     # Separate features and targets
     X = Inputs[:, :-4]         # Input features
     y = Inputs[:, -3:]         # Output columns
-    output_labels = ['Deadlift', 'Bench', 'Squat']
 
     # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -192,7 +190,7 @@ def transform_and_save_arrays(filtered):
     squat_test = y_test[:, 0]
     bench_test = y_test[:, 1]
     deadlift_test = y_test[:, 2]
-
+    
     # Save inputs
     np.save('X_train.npy', X_train)
     np.save('X_test.npy', X_test)
