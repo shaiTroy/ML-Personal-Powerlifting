@@ -191,18 +191,21 @@ def transform_and_save_arrays(filtered):
     bench_test = y_test[:, 1]
     deadlift_test = y_test[:, 2]
     
+    os.makedirs('data', exist_ok=True)
+
     # Save inputs
-    np.save('X_train.npy', X_train)
-    np.save('X_test.npy', X_test)
+    np.save('data/X_train.npy', X_train)
+    np.save('data/X_test.npy', X_test)
 
     # Save separated outputs
-    np.save('deadlift_train.npy', deadlift_train)
-    np.save('bench_train.npy', bench_train)
-    np.save('squat_train.npy', squat_train)
+    np.save('data/deadlift_train.npy', deadlift_train)
+    np.save('data/bench_train.npy', bench_train)
+    np.save('data/squat_train.npy', squat_train)
 
-    np.save('deadlift_test.npy', deadlift_test)
-    np.save('bench_test.npy', bench_test)
-    np.save('squat_test.npy', squat_test)
+    np.save('data/deadlift_test.npy', deadlift_test)
+    np.save('data/bench_test.npy', bench_test)
+    np.save('data/squat_test.npy', squat_test)
+    
     
 if __name__ == '__main__':
     data = sortData(importData())
