@@ -6,13 +6,14 @@ from torch.utils.data import DataLoader, TensorDataset
 import os
 from tqdm import tqdm
 from NN_model import MLP, custom_huber, custom_loss
+from save_model import save_model
 
-def optuna_running(train_file, study_name):
+def optuna_running(train_file, study_name, lift_save, lift):
     device = torch.device("cpu")
 
-    Inputs_Train = np.load('X_train.npy').astype(float)
-    Outputs_Train = np.load(train_file).astype(float)
-    Inputs_Test = np.load('X_test.npy').astype(float)
+    Inputs_Train = np.load('data/X_train.npy').astype(float)
+    Outputs_Train = np.load(f'data/{train_file}').astype(float)
+    Inputs_Test = np.load('data/X_test.npy').astype(float)
 
     val_split = int(len(Inputs_Train) * 0.8)
     Inputs_Validation = torch.tensor(Inputs_Train[val_split:], dtype=torch.float32)
@@ -42,8 +43,6 @@ def optuna_running(train_file, study_name):
     print(f"Validation on {Inputs_Validation.shape} entries, separated into {Inputs_Val_1.shape} and {Inputs_Val_2.shape}")
     print(f"Testing on {Inputs_Test.shape} entries")
         
-    mse = custom_huber
-
     study_dir = os.path.join('/Users/shaitroy/d/ML-Personal-Powerlifting', 'optuna_studies')
     os.makedirs(study_dir, exist_ok=True)
     storage_path = f'sqlite:///{study_dir}/mlp_study.db'
@@ -83,7 +82,7 @@ def optuna_running(train_file, study_name):
         ).to(device)
 
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=alpha)
-        criterion = mse
+        criterion = custom_huber
 
         # Early stopping parameters
         best_loss = float('inf')
@@ -138,7 +137,7 @@ def optuna_running(train_file, study_name):
 
         return final_loss
 
-    study.optimize(objective, n_trials=250)
+    study.optimize(objective, n_trials=0)
 
     valid_trials = [t for t in study.trials if t.value is not None]
 
@@ -152,16 +151,48 @@ def optuna_running(train_file, study_name):
     for i, trial in enumerate(top_trials):
         print(f"Rank {i+1}: Trial #{trial.number}")
         print(f"  Validation Loss: {trial.value}")
+        
         n_layers = trial.params.get('n_layers')
         max_nodes = trial.params.get('max_nodes')
+        
         if n_layers is not None and max_nodes is not None:
             layers = compute_layers(n_layers, max_nodes)
             print(f"  Layers: {layers}")
-        print(f"  learning_rate_init: {trial.params.get('learning_rate_init', 'N/A')}")
-        print(f"  alpha: {trial.params.get('alpha', 'N/A')}")
-        print(f"  batch_size: {trial.params.get('batch_size', 'N/A')}")
-        print(f"  activation: {trial.params.get('activation', 'N/A')}")
-        print(f"  dropout: {trial.params.get('dropout', 'N/A')}")
-        print(f"  use_batchnorm: {trial.params.get('use_batchnorm', 'N/A')}")
-        print(f"  patience: {trial.params.get('patience', 'N/A')}")
+        else:
+            layers = None  # fallback if needed
+
+        learning_rate = trial.params.get('learning_rate_init', 0.001)
+        weight_decay = trial.params.get('alpha', 0.0001)
+        batch_size = trial.params.get('batch_size', 32)
+        activation = trial.params.get('activation', 'relu')
+        dropout = trial.params.get('dropout', 0.5)
+        use_batchnorm = trial.params.get('use_batchnorm', True)
+        patience = trial.params.get('patience', 5)
+
+        print(f"  learning_rate_init: {learning_rate}")
+        print(f"  alpha: {weight_decay}")
+        print(f"  batch_size: {batch_size}")
+        print(f"  activation: {activation}")
+        print(f"  dropout: {dropout}")
+        print(f"  use_batchnorm: {use_batchnorm}")
+        print(f"  patience: {patience}")
         print()
+
+        if i == 0 and layers is not None:
+            print("Calling save_model for the best trial:")
+            save_model(
+                train_file=train_file,
+                test_file=f'{lift}_test.npy',
+                model_save_path=f'{lift_save}.pth',
+                layers=layers,
+                activation=activation,
+                dropout=dropout,
+                learning_rate=learning_rate,
+                weight_decay=weight_decay,
+                batch_size=batch_size,
+                patience=patience,
+                use_batchnorm=use_batchnorm,
+                test=True  # force this to True
+            )
+            
+        

@@ -5,10 +5,10 @@ import os
 from tqdm import tqdm
 from NN_model import *
 
-def save_model(train_file, model_save_path, layers, activation, dropout, learning_rate, weight_decay, batch_size, patience, use_batchnorm = True, test = False):
+def save_model(train_file, test_file, model_save_path, layers, activation, dropout, learning_rate, weight_decay, batch_size, patience, use_batchnorm = True, test = False):
     os.system('clear')
     
-    Inputs_Train, Outputs_Train, Inputs_Test, Outputs_Test = get_data(train_file)
+    Inputs_Train, Outputs_Train, Inputs_Test, Outputs_Test = get_data(train_file, test_file)
 
     print(Outputs_Train.shape)
     print(Outputs_Test.shape)
@@ -68,7 +68,7 @@ def save_model(train_file, model_save_path, layers, activation, dropout, learnin
             model.load_state_dict(best_model_state)
             print(f"Model reverted to best epoch: {best_epoch} (loss: {best_loss:.4f})")
 
-        save_model(model, model_save_path)
+        save_model_to_file(model, model_save_path)
         
     else:
         model = load_model(model, model_save_path)

@@ -42,11 +42,13 @@ def custom_loss(y_true1, y_pred1, y_true2, y_pred2):
     return mse1 + ((0.1 * (mse1 - mse2)).pow(2))
     #This function is required for proper regularization
     
-def get_data(train_file):
+def get_data(train_file, test_file = None):
+    if test_file is None:
+        test_file = train_file
     Inputs_Train = np.load('data/X_train.npy').astype(float)
     Outputs_Train = np.load(f'data/{train_file}').astype(float)
     Inputs_Test = np.load('data/X_test.npy').astype(float)
-    Outputs_Test = np.load(f'data/{train_file}').astype(float)
+    Outputs_Test = np.load(f'data/{test_file}').astype(float)
 
 
     Inputs_Train = torch.tensor(Inputs_Train, dtype=torch.float32)
@@ -70,7 +72,7 @@ def model_available(model_save_path):
         return False
     return True
 
-def save_model(model, model_save_path):
+def save_model_to_file(model, model_save_path):
     model_save_path = os.path.join('models', model_save_path)
     torch.save(model.state_dict(), f'{model_save_path}')
     print(f"Model saved to {model_save_path}")
