@@ -4,6 +4,7 @@ import numpy as np
 import sys
 from sklearn.model_selection import train_test_split
 import os
+from IsoForest import Iso
 
 os.system('clear')
 
@@ -141,7 +142,8 @@ def transform_and_save_arrays(filtered):
     print(f"Number of entries: {len(comps)}")
 
     #Send to unsupervised algo to learn injured vs healthy
-    Inputs = np.array(comps)
+    #Inputs, extra = np.array(comps)
+    Inputs, extra = Iso(comps)
     
     #Array looks as following:
     
@@ -178,9 +180,18 @@ def transform_and_save_arrays(filtered):
     # Separate features and targets
     X = Inputs[:, :-4]         # Input features
     y = Inputs[:, -3:]         # Output columns
+    Xextra = extra[:, :-4]
+    yextra = extra[:, -3:]
 
     # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    X_train = np.concatenate((X_train, Xextra), axis=0)
+    y_train = np.concatenate((y_train, yextra), axis=0)
+    
+    perm = np.random.permutation(len(X_train))
+    X_train = X_train[perm]
+    y_train = y_train[perm]
 
     # Separate the outputs
     squat_train = y_train[:, 0]
@@ -191,6 +202,9 @@ def transform_and_save_arrays(filtered):
     bench_test = y_test[:, 1]
     deadlift_test = y_test[:, 2]
     
+    print(f"Number of training entries: {len(X_train)}")
+    print(f"Number of testing entries: {len(X_test)}")
+ 
     os.makedirs('data', exist_ok=True)
 
     # Save inputs

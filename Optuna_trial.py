@@ -137,7 +137,7 @@ def optuna_running(train_file, study_name, lift_save, lift):
 
         return final_loss
 
-    study.optimize(objective, n_trials=0)
+    study.optimize(objective, n_trials=500)
 
     valid_trials = [t for t in study.trials if t.value is not None]
 

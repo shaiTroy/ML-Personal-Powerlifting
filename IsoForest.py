@@ -27,6 +27,8 @@ def Iso(arr):
     
     input = np.array((filtered_arr))
 
+    output = np.array((arr[~mask]))
+    
     
     '''
     plt.figure(figsize=(8, 6))
@@ -47,4 +49,4 @@ def Iso(arr):
         print(f"Smallest number in Input with score >= 0: {min_value:.2f}")
     '''
     
-    return input
+    return input, output
