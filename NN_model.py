@@ -50,7 +50,6 @@ def get_data(train_file, test_file = None):
     Inputs_Test = np.load('data/X_test.npy').astype(float)
     Outputs_Test = np.load(f'data/{test_file}').astype(float)
 
-
     Inputs_Train = torch.tensor(Inputs_Train, dtype=torch.float32)
     Outputs_Train = torch.tensor(Outputs_Train, dtype=torch.float32)
     Inputs_Test = torch.tensor(Inputs_Test, dtype=torch.float32)

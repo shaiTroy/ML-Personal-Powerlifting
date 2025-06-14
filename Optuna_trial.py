@@ -47,7 +47,7 @@ def optuna_running(train_file, study_name, lift_save, lift):
     os.makedirs(study_dir, exist_ok=True)
     storage_path = f'sqlite:///{study_dir}/mlp_study.db'
 
-    sampler = optuna.samplers.TPESampler(n_startup_trials=50)  # You can increase this number
+    sampler = optuna.samplers.TPESampler(n_startup_trials=100)  # You can increase this number
     study = optuna.create_study(
         direction="minimize",
         storage=storage_path,
@@ -57,16 +57,16 @@ def optuna_running(train_file, study_name, lift_save, lift):
     )
 
     def objective(trial):
-        n_layers = trial.suggest_int("n_layers", 2, 10)
-        max_nodes = trial.suggest_int("max_nodes", 32, 512, step=32)
+        n_layers = trial.suggest_int("n_layers", 2, 20)
+        max_nodes = trial.suggest_int("max_nodes", 32, 1024, step=32)
 
         step_sizes = [max_nodes - i * ((max_nodes-32) // (n_layers - 1)) for i in range(n_layers)]
         layers = [int(round(n / 32) * 32) for n in step_sizes]
         layers = [max(32, min(max_nodes, l)) for l in layers]
 
-        learning_rate = trial.suggest_float("learning_rate_init", 1e-4, 1e-1, log=True)
+        learning_rate = trial.suggest_float("learning_rate_init", 1e-6, 1e-1, log=True)
         alpha = trial.suggest_float("alpha", 1e-6, 1e-2, log=True)
-        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128, 256, 512, 1024, 2048])
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192])
         activation = trial.suggest_categorical("activation", ["relu", "tanh", "logistic"])
 
         patience = trial.suggest_int("patience", 3, 10)  
@@ -137,7 +137,7 @@ def optuna_running(train_file, study_name, lift_save, lift):
 
         return final_loss
 
-    study.optimize(objective, n_trials=500)
+    study.optimize(objective, n_trials=0)
 
     valid_trials = [t for t in study.trials if t.value is not None]
 
